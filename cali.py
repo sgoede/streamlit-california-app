@@ -4,6 +4,10 @@ from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 import joblib
+from sklearn import metrics
+import numpy as np
+import xgboost.sklearn as xgb
+from sklearn.model_selection import GridSearchCV
 
 # Load the dataset
 def california_housing():
@@ -23,7 +27,7 @@ X = st.session_state.california_housing.frame.loc[:, st.session_state.california
 y = st.session_state.california_housing.frame.loc[:, st.session_state.california_housing.frame.columns == 'MedHouseVal'].values
 x_train, x_test, y_train, y_test = train_test_split (X,y, test_size = 0.25, random_state=37)
 
-st.subheader('Setting the benchmark: Fitting a simple linear regression model')
+st.subheader('Setting the benchmark: Fit a simple linear regression- model')
 st.caption('Note that this model is previously fitted and loaded here, due to performance reasons')
 st.write('Below the source code of the linear model can be reviewed')
 st.code('''
@@ -44,6 +48,7 @@ def lin_reg():
     st.session_state.r_sq = st.session_state.lin_reg.score(x_train,y_train)
     st.session_state.r_sq_t = st.session_state.lin_reg.score(x_test,y_test)
     st.session_state.y_pred = st.session_state.lin_reg.predict(x_test)
+    st.session_state.rmse = np.sqrt(metrics.mean_squared_error(y_test, st.session_state.y_pred))
 
 if 'lin_reg' not in st.session_state:
     lin_reg()
@@ -52,3 +57,9 @@ st.write('The benchmark model on this dataset yields the following results:')
 st.write('R-squared: Training Set',round(st.session_state.r_sq,2))
 st.write('R-squared: Test Set',round(st.session_state.r_sq_t,2))
 st.write(f'Since the benchmark model has an R-square of {round(st.session_state.r_sq_t,2)} on the test set, we will continue with a linear kernel')
+st.write('For easier comparison with other models, the Root Mean Squared Error (RMSE) score is also reported')
+st.write('RMSE of baseline model on test set:', round(st.session_state.rmse,2))
+
+# Building the dashboard on XGBOOST model:
+st.subheader('Model the California Housing Dataset using XGBOOST')
+
