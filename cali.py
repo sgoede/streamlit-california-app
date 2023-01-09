@@ -62,4 +62,32 @@ st.write('RMSE of baseline model on test set:', round(st.session_state.rmse,2))
 
 # Building the dashboard on XGBOOST model:
 st.subheader('Model the California Housing Dataset using XGBOOST')
-
+st.write('Below the source code of the XGB model can be reviewed')
+st.code('''# Define the search space
+params = { 
+    # Learning rate shrinks the weights to make the boosting process more conservative
+    "learning_rate": [0.0001,0.001, 0.01, 0.1, 1] ,
+    # Maximum depth of the tree, increasing it increases the model complexity.
+    "max_depth": range(3,21,3),
+    # Gamma specifies the minimum loss reduction required to make a split.
+    "gamma": [i/10.0 for i in range(0,5)],
+    # Percentage of columns to be randomly samples for each tree.
+    "colsample_bytree": [i/10.0 for i in range(3,10)],
+    # reg_alpha provides l1 regularization to the weight, higher values result in more conservative models
+    "reg_alpha": [1e-5, 1e-2, 0.1, 1, 10, 100],
+    # reg_lambda provides l2 regularization to the weight, higher values result in more conservative models
+    "reg_lambda": [1e-5, 1e-2, 0.1, 1, 10, 100],
+    # the minimum number of samples that a node can represent in order to be split further.
+    "min_child_weight" : range(1,9,2)
+    }
+# Initiate the xgboost regressor (note GPU training is enabled)
+xgb_regressor = xgb.XGBRegressor(n_jobs=None,tree_method='gpu_hist',seed=37)   
+# Perform a 3-fold cross-validited random-search of the grid for 2000 possible combinations, meaning 6000 models are evaluated
+param_comb = 2000
+rs_model=RandomizedSearchCV(xgb_regressor,param_distributions=params,n_iter=param_comb, scoring="neg_root_mean_squared_error",n_jobs=None,cv=3,verbose=3,random_state=37)
+# Actual fitting procedure:
+rs_model.fit(x_train,y_train)
+# Perform 10-fold cross validation on the best model. 
+print(np.mean(cross_val_score(rs_model.best_estimator_,x_test,y_test,cv=10)))
+# Save the best model
+rs_model.best_estimator_.save_model("xgboost_model.json"''')
