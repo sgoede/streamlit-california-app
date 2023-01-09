@@ -82,7 +82,7 @@ params = {
     }
 # Initiate the xgboost regressor (note GPU training is enabled)
 xgb_regressor = xgb.XGBRegressor(n_jobs=None,tree_method='gpu_hist',seed=37)   
-# Perform a 3-fold cross-validited random-search of the grid for 2000 possible combinations, meaning 6000 models are evaluated
+# Perform a 3-fold cross-validated random-search of the grid for 2000 possible combinations, meaning 6000 models are evaluated
 param_comb = 2000
 rs_model=RandomizedSearchCV(xgb_regressor,param_distributions=params,n_iter=param_comb, scoring="neg_root_mean_squared_error",n_jobs=None,cv=3,verbose=3,random_state=37)
 # Actual fitting procedure:
