@@ -4,10 +4,16 @@ from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 import joblib
+import matplotlib.pyplot as plt
+# import matplotlib as mpl
 from sklearn import metrics
 import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
+from io import BytesIO
+from graphviz import Digraph
+
+# mpl.rcParams['figure.figsize'] = 160, 48
 
 # Load the dataset
 def california_housing():
@@ -116,5 +122,26 @@ ntree=st.number_input('Select the desired record for detailed explanation on the
                         , min_value=min(range(st.session_state.xbg_loaded.best_iteration))
                                        , max_value=max(range(st.session_state.xbg_loaded.best_iteration+1))
                                        )
-tree=xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
-st.graphviz_chart(tree)                                       
+
+# tree=xgb.plot_tree(st.session_state.xbg_loaded,num_trees=ntree).figure
+# # plt.figure(figsize=[20,6])
+# buf = BytesIO()
+# plt.tight_layout()
+# tree.savefig(buf, format="png")
+# st.image(buf)
+
+g=xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
+# g.render('tree.gv',view=True)
+if st.button('click to see the seleted tree, opens in a new window'):
+    g.render('tree.gv',view=True)
+    st.caption('Trouble reading the tree? Try zooming in')
+# st.image(tree.gv.pdf)
+
+# fig = plt.gcf()
+# # fig.set_size_inches(12, 6)
+# # fig.savefig('tree.png')
+# buf = BytesIO()
+# tree.savefig(buf, format="svg")
+# st.image(buf)
+
+# supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
