@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 import joblib
 from sklearn import metrics
 import numpy as np
-import xgboost.sklearn as xgb
+import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
 
 # Load the dataset
@@ -90,4 +90,31 @@ rs_model.fit(x_train,y_train)
 # Perform 10-fold cross validation on the best model. 
 print(np.mean(cross_val_score(rs_model.best_estimator_,x_test,y_test,cv=10)))
 # Save the best model
-rs_model.best_estimator_.save_model("xgboost_model.json"''')
+rs_model.best_estimator_.save_model("xgboost_model.json)"''')
+
+# Load the cross-validated tuned XGBOOST model
+def xgb_loaded():
+    st.session_state.xbg_loaded = xgb.XGBRegressor()
+    st.session_state.xbg_loaded.load_model("xgboost_model.json")
+    st.session_state.xbg_loaded.set_params(tree_method ='hist')
+    st.session_state.xbg_loaded.set_params(n_jobs = '-1')
+    st.session_state.loaded_predictions = st.session_state.xbg_loaded.predict(x_test)
+    st.session_state.xgb_rmse = np.sqrt(metrics.mean_squared_error(y_test, st.session_state.loaded_predictions))
+
+if 'xgb_loaded' not in st.session_state:
+    xgb_loaded()
+
+st.caption('Note that this model is previously fitted and loaded here, and set to CPU mode due to performance reasons')
+
+st.write(f'RMSE of the XGBoost model on the test set: {round(st.session_state.xgb_rmse,2)}') 
+st.write(f'This means that the model, on average, has an error in predicting the median house value of: {round(st.session_state.xgb_rmse,2)}  Times $1.000.')
+st.write(f'This model scores  {abs(round(((round(st.session_state.xgb_rmse,2)- round(st.session_state.rmse,2))/ round(st.session_state.rmse,2))*100,2))} percent better on the unseen test data than the benchmark model.')
+    
+st.title('Explaining the XGBoost model.. to a wider audience')
+st.write('below, all seperate decision trees that have been build by training the model can be reviewed')
+ntree=st.number_input('Select the desired record for detailed explanation on the training set'
+                        , min_value=min(range(st.session_state.xbg_loaded.best_iteration))
+                                       , max_value=max(range(st.session_state.xbg_loaded.best_iteration+1))
+                                       )
+tree=xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
+st.graphviz_chart(tree)                                       
