@@ -133,7 +133,10 @@ ntree=st.number_input('Select the desired record for detailed explanation on the
 g=xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
 # g.render('tree.gv',view=True)
 if st.button('click to see the seleted tree, opens in a new window'):
-    g.render('tree.gv',view=True)
+    tree = g.render('tree', format='jpg')
+    st.image(tree,width=17587)
+    #backup
+    # g.render('tree.gv',view=True)
     st.caption('Trouble reading the tree? Try zooming in')
 # st.image(tree.gv.pdf)
 
