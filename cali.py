@@ -87,9 +87,9 @@ params = {
     "min_child_weight" : range(1,9,2)
     }
 # Initiate the xgboost regressor (note GPU training is enabled)
-xgb_regressor = xgb.XGBRegressor(n_jobs=None,tree_method='gpu_hist',seed=37)   
-# Perform a 3-fold cross-validated random-search of the grid for 2000 possible combinations, meaning 6000 models are evaluated
-param_comb = 2000
+rs_model=RandomizedSearchCV(xgb_regressor,param_distributions=params,n_iter=param_comb, scoring="neg_root_mean_squared_error",n_jobs=None,cv=3,verbose=3,random_state=37) 
+# Perform a 3-fold cross-validated random-search of the grid for 18.900 possible combinations, evaluating ~25% of the total grid.
+param_comb = 18900
 rs_model=RandomizedSearchCV(xgb_regressor,param_distributions=params,n_iter=param_comb, scoring="neg_root_mean_squared_error",n_jobs=None,cv=3,verbose=3,random_state=37)
 # Actual fitting procedure:
 rs_model.fit(x_train,y_train)
@@ -123,28 +123,15 @@ ntree=st.number_input('Select the desired record for detailed explanation on the
                                        , max_value=max(range(st.session_state.xbg_loaded.best_iteration+1))
                                        )
 
-# tree=xgb.plot_tree(st.session_state.xbg_loaded,num_trees=ntree).figure
-# # plt.figure(figsize=[20,6])
-# buf = BytesIO()
-# plt.tight_layout()
-# tree.savefig(buf, format="png")
-# st.image(buf)
+if st.button('click to see the selected tree'):
+    graph = xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
+    tree = graph.render('tree', format='jpg')
+    st.image(tree, width= round(17587/2))
 
-g=xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
-# g.render('tree.gv',view=True)
-if st.button('click to see the seleted tree, opens in a new window'):
-    tree = g.render('tree', format='jpg')
-    st.image(tree,width=17587)
-    #backup
-    # g.render('tree.gv',view=True)
-    st.caption('Trouble reading the tree? Try zooming in')
-# st.image(tree.gv.pdf)
-
-# fig = plt.gcf()
-# # fig.set_size_inches(12, 6)
-# # fig.savefig('tree.png')
-# buf = BytesIO()
-# tree.savefig(buf, format="svg")
-# st.image(buf)
-
-# supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)
+st.write('Using the standard XGBOOST importance plot feature, exposes the fact that the most important feature is not stable, select'
+             ' different importance types using the selectbox below')
+importance_type = st.selectbox('Select the desired importance type', ('weight','gain','cover'),index=0)
+importance_plot = xgb.plot_importance(st.session_state.xbg_loaded,importance_type=importance_type)
+plt.title ('xgboost.plot_importance(best XGBoost model) importance type = '+ str(importance_type))
+st.pyplot(importance_plot.figure)
+plt.clf()
