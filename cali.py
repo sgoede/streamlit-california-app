@@ -5,13 +5,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 import joblib
 import matplotlib.pyplot as plt
-# import matplotlib as mpl
+from streamlit_shap import st_shap
+import shap
 from sklearn import metrics
 import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
-from io import BytesIO
-from graphviz import Digraph
+# from io import BytesIO
+# from graphviz import Digraph
 
 # mpl.rcParams['figure.figsize'] = 160, 48
 
@@ -90,7 +91,6 @@ params = {
 rs_model=RandomizedSearchCV(xgb_regressor,param_distributions=params,n_iter=param_comb, scoring="neg_root_mean_squared_error",n_jobs=None,cv=3,verbose=3,random_state=37) 
 # Perform a 3-fold cross-validated random-search of the grid for 18.900 possible combinations, evaluating ~25% of the total grid.
 param_comb = 18900
-rs_model=RandomizedSearchCV(xgb_regressor,param_distributions=params,n_iter=param_comb, scoring="neg_root_mean_squared_error",n_jobs=None,cv=3,verbose=3,random_state=37)
 # Actual fitting procedure:
 rs_model.fit(x_train,y_train)
 # Perform 10-fold cross validation on the best model. 
@@ -135,3 +135,11 @@ importance_plot = xgb.plot_importance(st.session_state.xbg_loaded,importance_typ
 plt.title ('xgboost.plot_importance(best XGBoost model) importance type = '+ str(importance_type))
 st.pyplot(importance_plot.figure)
 plt.clf()
+
+st.write('To handle this inconsitency, SHAP values give robust details, among which is feature importance')
+st.session_state.explainer = shap.TreeExplainer(st.session_state.xbg_loaded)
+st.session_state.shap_values = st.session_state.explainer.shap_values(x_train)
+plt.title('Assessing feature importance based on Shap values')
+st_shap(shap.summary_plot(st.session_state.shap_values,x_train,plot_type="bar",feature_names=st.session_state.california_housing.frame.columns, show=True))
+# st.pyplot(summary_plot.figure)
+# plt.clf()
