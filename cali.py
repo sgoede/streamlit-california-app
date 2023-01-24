@@ -128,6 +128,7 @@ if st.button('click to see the selected tree'):
     graph = xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
     tree = graph.render('tree', format='jpg')
     st.image(tree, width= 17587)
+    st.caption('Too large? try zooming out using your browser')
 
 st.write('Using the standard XGBOOST importance plot feature, exposes the fact that the most important feature is not stable, select'
              ' different importance types using the selectbox below')
@@ -145,11 +146,11 @@ if 'explainer' not in st.session_state:
     shap_explainer()
 
 st.write('To handle this inconsitency, SHAP values give robust details, among which is feature importance')
-st_shap(shap.summary_plot(st.session_state.shap_values,x_train,plot_type="bar",feature_names=st.session_state.california_housing.frame.columns))
+st_shap(shap.summary_plot(st.session_state.shap_values,x_train,plot_type="bar",feature_names=st.session_state.california_housing.feature_names))
 
 st.write('''SHAP values can also be used to represent the distribution of the training set of the respectable
             SHAP value in relation with the Target value, in this case the median house value for California districts (MedHouseVal)''')
-st_shap(shap.summary_plot(st.session_state.shap_values,x_train,feature_names=st.session_state.california_housing.frame.columns))
+st_shap(shap.summary_plot(st.session_state.shap_values,x_train,feature_names=st.session_state.california_housing.feature_names))
 
 st.write('''Another example of SHAP values is for GDPR regulation, one should be able to give detailed information as to'
                why a specific prediction was made.''')
