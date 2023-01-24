@@ -11,10 +11,7 @@ from sklearn import metrics
 import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
-# from io import BytesIO
-# from graphviz import Digraph
-
-# mpl.rcParams['figure.figsize'] = 160, 48
+import pandas as pd
 
 # Load the dataset
 def california_housing():
@@ -109,6 +106,7 @@ def xgb_loaded():
     st.session_state.xbg_loaded.set_params(n_jobs = '-1')
     st.session_state.loaded_predictions = st.session_state.xbg_loaded.predict(x_test)
     st.session_state.xgb_rmse = np.sqrt(metrics.mean_squared_error(y_test, st.session_state.loaded_predictions))
+    st.session_state.loaded_train_predictions = st.session_state.xbg_loaded.predict(x_train)
 
 if 'xgb_loaded' not in st.session_state:
     xgb_loaded()
@@ -129,7 +127,7 @@ ntree=st.number_input('Select the desired record for detailed explanation on the
 if st.button('click to see the selected tree'):
     graph = xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
     tree = graph.render('tree', format='jpg')
-    st.image(tree, width= round(17587/2))
+    st.image(tree, width= 17587)
 
 st.write('Using the standard XGBOOST importance plot feature, exposes the fact that the most important feature is not stable, select'
              ' different importance types using the selectbox below')
@@ -142,23 +140,58 @@ plt.clf()
 def shap_explainer():
     st.session_state.explainer = shap.TreeExplainer(st.session_state.xbg_loaded)
     st.session_state.shap_values = st.session_state.explainer.shap_values(x_train)
-
-
-
-
+    
 if 'explainer' not in st.session_state:
     shap_explainer()
 
-
 st.write('To handle this inconsitency, SHAP values give robust details, among which is feature importance')
-
-
-# st.session_state.explainer = shap.TreeExplainer(st.session_state.xbg_loaded)
-# st.session_state.shap_values = st.session_state.explainer.shap_values(x_train)
-# st.session_state.summary_plot_importance = shap.summary_plot(st.session_state.shap_values,x_train,plot_type="bar",feature_names=st.session_state.california_housing.frame.columns,show=False)
-# st.session_state.summary_plot = shap.summary_plot(st.session_state.shap_values,x_train,show=False,feature_names=st.session_state.california_housing.frame.columns) 
 st_shap(shap.summary_plot(st.session_state.shap_values,x_train,plot_type="bar",feature_names=st.session_state.california_housing.frame.columns))
+
 st.write('''SHAP values can also be used to represent the distribution of the training set of the respectable
             SHAP value in relation with the Target value, in this case the median house value for California districts (MedHouseVal)''')
 st_shap(shap.summary_plot(st.session_state.shap_values,x_train,feature_names=st.session_state.california_housing.frame.columns))
-# summary_plot = st.session_state.summary_plot
+
+st.write('''Another example of SHAP values is for GDPR regulation, one should be able to give detailed information as to'
+               why a specific prediction was made.''')
+expectation = st.session_state.explainer.expected_value
+individual = st.number_input('Select the desired record from the training set for detailed explanation.'
+                                           , min_value=min(range(len(x_train)))
+                                           , max_value=max(range(len(x_train))))
+predicted_values = st.session_state.loaded_train_predictions
+real_value = y_train[individual]
+st.write('The real median house value for this individual record is: '+str(real_value))
+st.write('The predicted median house value for this individual record is: '+str(predicted_values[individual]))
+st.write(f'''This prediction is calculated as follows:
+              The average median house value: {str(expectation)} + the sum of the SHAP values. ''')
+st.write(f'''For this individual record the sum of the SHAP values is: {str(sum(st.session_state.shap_values[individual,:]))}''')
+st.write(f'''This yields to a predicted value of median house value of: {str(expectation)} + {str(sum(st.session_state.shap_values[individual,:]))}
+                = {expectation+(sum(st.session_state.shap_values[individual,:]))}''')
+st.write('Which features caused this specific prediction? features in red increased the prediction, in blue decreased them')
+st_shap(shap.force_plot(st.session_state.explainer.expected_value, st.session_state.shap_values[individual],x_train[individual],feature_names=st.session_state.california_housing.feature_names))
+st.write('''In the plot above, the feature values are shown. The SHAP values are represented by the length of the specific bar.
+              However, it is not quite clear what each single SHAP value is exactly, this can be seen below, if wanted.''')
+def shap_table():
+    st.session_state.shap_table = pd.DataFrame(st.session_state.shap_values,columns=st.session_state.california_housing.feature_names)
+
+if st.button('Click here to see a drilldown of the SHAP values'):
+    if 'shap_table' not in st.session_state:
+        shap_table()
+    st.table(st.session_state.shap_table.iloc[individual])
+st.subheader('Developing a deeper understanding of the data using SHAP: Interaction effects')
+st.write('''When selecting features below, note that the alglorithm automatically plots the selected feature, with the feature that'
+              ' it most likely interacts with. However, the final judgement lies in the eyes of the beholder. Typically, when there is'
+              ' an interaction effect, points diverge strongly''')
+
+st.write('''In the slider below, select the number of features to inspect for possible interaction effects.'
+              'These are ordered based on feature importance in the model.''')
+ranges = st.slider('Please select the number of features',min_value=min(range(len(st.session_state.california_housing.feature_names)))+1, max_value=max(range(len(st.session_state.california_housing.feature_names)))+1,value=1)
+if ranges-1 == 0:
+    st.write('you have selected the most importance feature')
+elif ranges == len(st.session_state.california_housing.feature_names):
+    st.write('you have selected all possible features')
+else:
+    st.write('you have selected the top:',ranges,'important features')
+for rank in range(ranges):
+    ingest=('rank('+str(rank)+')')
+    st_shap(shap.dependence_plot(ingest,st.session_state.shap_values,x_train,feature_names=st.session_state.california_housing.feature_names))
+st.write('Conclusion: It is to my best judgement that there are no significant interaction effects within the features of this model.')
