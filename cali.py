@@ -12,6 +12,7 @@ import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
 import pandas as pd
+import fasttreeshap
 
 # Load the dataset
 def california_housing():
@@ -139,7 +140,7 @@ st.pyplot(importance_plot.figure)
 plt.clf()
 
 def shap_explainer():
-    st.session_state.explainer = shap.TreeExplainer(st.session_state.xbg_loaded)
+    st.session_state.explainer = fasttreeshap.TreeExplainer(st.session_state.xbg_loaded, algorithm='v2', n_jobs=-1)
     st.session_state.shap_values = st.session_state.explainer.shap_values(x_train)
     
 if 'explainer' not in st.session_state:
