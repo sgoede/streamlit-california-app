@@ -12,7 +12,7 @@ import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
 import pandas as pd
-import fasttreeshap
+import pickle
 
 # Load the dataset
 def california_housing():
@@ -140,15 +140,26 @@ st.pyplot(importance_plot.figure)
 plt.clf()
 
 def shap_explainer():
-    st.session_state.explainer = fasttreeshap.TreeExplainer(st.session_state.xbg_loaded, algorithm='v2', n_jobs=-1)
-    st.session_state.shap_values = st.session_state.explainer.shap_values(x_train)
+    st.session_state.explainer = pickle.load(open('explainer.sav', 'rb'))
+    st.session_state.shap_values = pickle.load(open('shap_values.sav', 'rb'))
     
 if 'explainer' not in st.session_state:
     shap_explainer()
 
 st.write('To handle this inconsitency, SHAP values give robust details, among which is feature importance')
 st_shap(shap.summary_plot(st.session_state.shap_values,x_train,plot_type="bar",feature_names=st.session_state.california_housing.feature_names))
-
+st.caption('Note that this calculation is loaded from disk and loaded here, due to performance reasons')
+st.write('Below the source code of the calculation can be reviewed')
+if st.button('click here to view source code',key=2):
+    st.code(''' # Load the XGB Model from disk
+    xbg_loaded = xgb.XGBRegressor()
+    xbg_loaded.load_model("xgboost_model.json")
+    # Compute SHAP Values
+    explainer = shap.TreeExplainer(xbg_loaded)
+    shap_values = explainer.shap_values(x_train)
+    # Save calculations to diks
+    pickle.dump(explainer, open('explainer.sav', 'wb'))
+    pickle.dump(shap_values, open('shap_values.sav', 'wb'))''')
 st.write('''SHAP values can also be used to represent the distribution of the training set of the respectable
             SHAP value in relation with the Target value, in this case the median house value for California districts (MedHouseVal)''')
 st_shap(shap.summary_plot(st.session_state.shap_values,x_train,feature_names=st.session_state.california_housing.feature_names))
