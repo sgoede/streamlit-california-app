@@ -220,18 +220,13 @@ def umap_embeddings():
    st.session_state.umap_dataframe['TARGET'] = st.session_state.shap_values.sum(1).astype(np.float64)
    labels = ['lowest 25%','25 to 50%','50-75%','highest 25%']
    st.session_state.umap_dataframe['TARGET_BINNED'] = pd.cut(st.session_state.umap_dataframe['TARGET'], bins=4,labels=labels).astype(str)
-#    st.session_state.umap_dataframe['MedInc'] = x_train[:,0]
-
-
-#    :Attribute Information:
-#     - MedInc        median income in block group
-#     - HouseAge      median house age in block group
-#     - AveRooms      average number of rooms per household
-#     - AveBedrms     average number of bedrooms per household
-#     - Population    block group population
-#     - AveOccup      average number of household members
-#     - Latitude      block group latitude
-#     - Longitude     block group longitude
+   st.session_state.umap_dataframe['MedInc'] = x_train[:,0]
+   st.session_state.umap_dataframe['HouseAge'] = x_train[:,1]
+   st.session_state.umap_dataframe['AveRooms'] = x_train[:,2]
+   st.session_state.umap_dataframe['AveBedrms'] = x_train[:,3]
+   st.session_state.umap_dataframe['Population'] = x_train[:,4]
+   st.session_state.umap_dataframe['Latitude'] = x_train[:,5]
+   st.session_state.umap_dataframe['Longitude'] = x_train[:,6]
 
 if 'umap_embeddings' not in st.session_state:
         umap_embeddings()
@@ -257,9 +252,82 @@ points_UMAP = alt.Chart(st.session_state.umap_dataframe).mark_point().encode(
     )
 
 
+MedInc = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
+    x='MedIncbin:N',
+    y="MedInc:Q"
+).properties(
+    width=300,
+    height=300
+).transform_filter(
+    brush
+).transform_bin(
+    "MedIncbin",
+    field="MedInc",
+    bin=alt.Bin(maxbins=20)
+)
+
+HouseAge = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
+    x='HouseAgebin:N',
+    y="HouseAge:Q"
+).properties(
+    width=300,
+    height=300
+).transform_filter(
+    brush
+).transform_bin(
+    "HouseAgebin",
+    field="HouseAge",
+    bin=alt.Bin(maxbins=20)
+)
+
+AveRooms = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
+    x='AveRoomsbin:N',
+    y="AveRooms:Q"
+).properties(
+    width=300,
+    height=300
+).transform_filter(
+    brush
+).transform_bin(
+    "AveRoomsbin",
+    field="AveRooms",
+    bin=alt.Bin(maxbins=20)
+)
+
+AveBedrms = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
+    x='AveBedrmsbin:N',
+    y="AveBedrms:Q"
+).properties(
+    width=300,
+    height=300
+).transform_filter(
+    brush
+).transform_bin(
+    "AveBedrmsbin",
+    field="AveBedrms",
+    bin=alt.Bin(maxbins=20)
+)
+
+Population = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
+    x='Populationbin:N',
+    y="Population:Q"
+).properties(
+    width=300,
+    height=300
+).transform_filter(
+    brush
+).transform_bin(
+    "Populationbin",
+    field="Population",
+    bin=alt.Bin(maxbins=20)
+)
 
 
 
-st.altair_chart(points_UMAP)
+
+st.altair_chart(points_UMAP & ((MedInc | HouseAge | AveRooms) & (AveBedrms | Population) ))
+
+
+
 
 
