@@ -13,6 +13,9 @@ import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
 import pandas as pd
 import pickle
+import umap
+import umap.plot
+import altair as alt
 
 # Load the dataset
 def california_housing():
@@ -208,3 +211,55 @@ for rank in range(ranges):
     ingest=('rank('+str(rank)+')')
     st_shap(shap.dependence_plot(ingest,st.session_state.shap_values,x_train,feature_names=st.session_state.california_housing.feature_names))
 st.write('Conclusion: It is to my best judgement that there are no significant interaction effects within the features of this model.')
+
+st.title(' Understanding groups: UMAP' )
+# mapper = umap.UMAP().fit(st.session_state.california_housing.data)
+def umap_embeddings():
+   st.session_state.umap_embeddings = pickle.load(open('umap_embeddings.sav','rb'))
+   st.session_state.umap_dataframe = pd.DataFrame(st.session_state.umap_embeddings, columns = ['x','y'])
+   st.session_state.umap_dataframe['TARGET'] = st.session_state.shap_values.sum(1).astype(np.float64)
+   labels = ['lowest 25%','25 to 50%','50-75%','highest 25%']
+   st.session_state.umap_dataframe['TARGET_BINNED'] = pd.cut(st.session_state.umap_dataframe['TARGET'], bins=4,labels=labels).astype(str)
+#    st.session_state.umap_dataframe['MedInc'] = x_train[:,0]
+
+
+#    :Attribute Information:
+#     - MedInc        median income in block group
+#     - HouseAge      median house age in block group
+#     - AveRooms      average number of rooms per household
+#     - AveBedrms     average number of bedrooms per household
+#     - Population    block group population
+#     - AveOccup      average number of household members
+#     - Latitude      block group latitude
+#     - Longitude     block group longitude
+
+if 'umap_embeddings' not in st.session_state:
+        umap_embeddings()
+st.caption('Note that these embeddings are loaded from disk, due to performance reasons')
+st.write('Below the source code of the UMAP embeddings can be reviewed')
+if st.button('click here to view source code', key=3):
+    st.code(''' # Create UMAP embedding
+embedding = umap.UMAP(n_neighbors=25,
+                      min_dist=0.0,
+                      metric='euclidean').fit_transform(st.session_state.shap_values)
+# Save embeddings to disk
+pickle.dump(embedding, open('umap_embeddings.sav', 'wb'))''')
+
+brush = alt.selection(type='interval',resolve='global')
+points_UMAP = alt.Chart(st.session_state.umap_dataframe).mark_point().encode(
+           x='x:Q',
+           y='y:Q',
+           color=alt.condition(brush, 'TARGET_BINNED:N', alt.value('lightgray'))
+    ).add_selection(
+           brush).properties(
+        width=1000,
+        height=750
+    )
+
+
+
+
+
+st.altair_chart(points_UMAP)
+
+
