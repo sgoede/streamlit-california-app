@@ -16,6 +16,7 @@ import pickle
 import umap
 import umap.plot
 import altair as alt
+import plotly.express as px
 
 # Load the dataset
 def california_housing():
@@ -225,8 +226,8 @@ def umap_embeddings():
    st.session_state.umap_dataframe['AveRooms'] = x_train[:,2]
    st.session_state.umap_dataframe['AveBedrms'] = x_train[:,3]
    st.session_state.umap_dataframe['Population'] = x_train[:,4]
-   st.session_state.umap_dataframe['Latitude'] = x_train[:,5]
-   st.session_state.umap_dataframe['Longitude'] = x_train[:,6]
+   st.session_state.umap_dataframe['latitude'] = st.session_state.california_housing.frame['Latitude']
+   st.session_state.umap_dataframe['longitude'] = st.session_state.california_housing.frame['Longitude']
 
 if 'umap_embeddings' not in st.session_state:
         umap_embeddings()
@@ -322,12 +323,13 @@ Population = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     bin=alt.Bin(maxbins=20)
 )
 
-
-
-
 st.altair_chart(points_UMAP & ((MedInc | HouseAge | AveRooms) & (AveBedrms | Population) ))
 
+def geospatial():
+    st.session_state.geospatial =  st.session_state.umap_dataframe.query("TARGET_BINNED in ['highest 25%','lowest 25%']")
 
+if 'geospatial' not in st.session_state:
+        geospatial()
 
-
-
+geo_fig = px.scatter_geo(st.session_state.geospatial, lat='latitude', lon='longitude', color='TARGET_BINNED', locationmode='USA-states', center=dict(lat=37.8600, lon=-122.2200), scope='usa')
+st.plotly_chart(geo_fig)
