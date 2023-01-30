@@ -18,6 +18,9 @@ import umap.plot
 import altair as alt
 import plotly.express as px
 
+st.title('Assessing Best Model Features on the California Housing Set')
+st.subheader('Created by: Stephan de Goede')
+
 # Load the dataset
 def california_housing():
     st.session_state.california_housing = fetch_california_housing(as_frame=True)
@@ -123,20 +126,21 @@ st.write(f'This means that the model, on average, has an error in predicting the
 st.write(f'This model scores  {abs(round(((round(st.session_state.xgb_rmse,2)- round(st.session_state.rmse,2))/ round(st.session_state.rmse,2))*100,2))} percent better on the unseen test data than the benchmark model.')
     
 st.title('Explaining the XGBoost model.. to a wider audience')
-st.write('below, all seperate decision trees that have been build by training the model can be reviewed')
+st.write('below, all separate decision trees that have been build by training the model can be reviewed')
 ntree=st.number_input('Select the desired record for detailed explanation on the training set'
                         , min_value=min(range(st.session_state.xbg_loaded.best_iteration))
-                                       , max_value=max(range(st.session_state.xbg_loaded.best_iteration+1))
+                        , max_value=max(range(st.session_state.xbg_loaded.best_iteration+1))
                                        )
 
 if st.button('click to see the selected tree'):
     graph = xgb.to_graphviz(st.session_state.xbg_loaded,num_trees=ntree)
     tree = graph.render('tree', format='jpg')
     st.image(tree, width= 17587)
-    st.caption('Too large? try zooming out using your browser')
+    st.write('Too large? try zooming out using your browser')
+    
 
 st.write('Using the standard XGBOOST importance plot feature, exposes the fact that the most important feature is not stable, select'
-             ' different importance types using the selectbox below')
+             ' different importance types using the select box below')
 importance_type = st.selectbox('Select the desired importance type', ('weight','gain','cover'),index=0)
 importance_plot = xgb.plot_importance(st.session_state.xbg_loaded,importance_type=importance_type)
 plt.title ('xgboost.plot_importance(best XGBoost model) importance type = '+ str(importance_type))
@@ -150,7 +154,7 @@ def shap_explainer():
 if 'explainer' not in st.session_state:
     shap_explainer()
 
-st.write('To handle this inconsitency, SHAP values give robust details, among which is feature importance')
+st.write('To handle this inconsistency, SHAP values give robust details, among which is feature importance')
 st_shap(shap.summary_plot(st.session_state.shap_values,x_train,plot_type="bar",feature_names=st.session_state.california_housing.feature_names))
 st.caption('Note that this calculation is loaded from disk and loaded here, due to performance reasons')
 st.write('Below the source code of the calculation can be reviewed')
@@ -161,7 +165,7 @@ if st.button('click here to view source code',key=2):
     # Compute SHAP Values
     explainer = shap.TreeExplainer(xbg_loaded)
     shap_values = explainer.shap_values(x_train)
-    # Save calculations to diks
+    # Save calculations to disk
     pickle.dump(explainer, open('explainer.sav', 'wb'))
     pickle.dump(shap_values, open('shap_values.sav', 'wb'))''')
 st.write('''SHAP values can also be used to represent the distribution of the training set of the respectable
@@ -194,13 +198,16 @@ if st.button('Click here to see a drilldown of the SHAP values'):
     if 'shap_table' not in st.session_state:
         shap_table()
     st.table(st.session_state.shap_table.iloc[individual])
+
 st.subheader('Developing a deeper understanding of the data using SHAP: Interaction effects')
-st.write('''When selecting features below, note that the alglorithm automatically plots the selected feature, with the feature that'
+
+st.write('''When selecting features below, note that the algorithm automatically plots the selected feature, with the feature that'
               ' it most likely interacts with. However, the final judgement lies in the eyes of the beholder. Typically, when there is'
               ' an interaction effect, points diverge strongly''')
 
 st.write('''In the slider below, select the number of features to inspect for possible interaction effects.'
               'These are ordered based on feature importance in the model.''')
+
 ranges = st.slider('Please select the number of features',min_value=min(range(len(st.session_state.california_housing.feature_names)))+1, max_value=max(range(len(st.session_state.california_housing.feature_names)))+1,value=1)
 if ranges-1 == 0:
     st.write('you have selected the most importance feature')
@@ -211,9 +218,17 @@ else:
 for rank in range(ranges):
     ingest=('rank('+str(rank)+')')
     st_shap(shap.dependence_plot(ingest,st.session_state.shap_values,x_train,feature_names=st.session_state.california_housing.feature_names))
+
 st.write('Conclusion: It is to my best judgement that there are no significant interaction effects within the features of this model.')
 
-st.title(' Understanding groups: UMAP' )
+st.subheader(' Understanding groups: Dimensionality reduction using UMAP and plotting the embeddings in 2D, focussing on potential clusters' )
+
+st.write('''Below is an interactive UMAP plot. If you drag your mouse whilst holding the left mouse button, characteristics of 
+              all non-spatial features are automatically shown as histograms. Herewith one can get meaningful insights of different groups in for example:
+              targeting and communication in a marketing context, or to understand the distribution of the features, for the selected segment.
+            Note that the target variable here is the sum of all the SHAP-values for that given datapoint. Furthermore, it is binned into 4 equal groups,for better interpretability. Each separate color stands for a specific group,'
+             ' where pink signals the highest 25% of (predicted) median house value for California districts. In addition, underneath the graphs, a filter is added to quickly select a specific quadrant''')
+
 # mapper = umap.UMAP().fit(st.session_state.california_housing.data)
 def umap_embeddings():
    st.session_state.umap_embeddings = pickle.load(open('umap_embeddings.sav','rb'))
@@ -231,6 +246,7 @@ def umap_embeddings():
 
 if 'umap_embeddings' not in st.session_state:
         umap_embeddings()
+
 st.caption('Note that these embeddings are loaded from disk, due to performance reasons')
 st.write('Below the source code of the UMAP embeddings can be reviewed')
 if st.button('click here to view source code', key=3):
@@ -241,6 +257,8 @@ embedding = umap.UMAP(n_neighbors=25,
 # Save embeddings to disk
 pickle.dump(embedding, open('umap_embeddings.sav', 'wb'))''')
 
+input_dropdown = alt.binding_select(options=st.session_state.umap_dataframe['TARGET_BINNED'].unique(), name='Filter_group_SHAP_Values')
+group_selection = alt.selection_single(fields=['TARGET_BINNED'], bind=input_dropdown)
 brush = alt.selection(type='interval',resolve='global')
 points_UMAP = alt.Chart(st.session_state.umap_dataframe).mark_point().encode(
            x='x:Q',
@@ -248,9 +266,12 @@ points_UMAP = alt.Chart(st.session_state.umap_dataframe).mark_point().encode(
            color=alt.condition(brush, 'TARGET_BINNED:N', alt.value('lightgray'))
     ).add_selection(
            brush).properties(
-        width=1000,
-        height=750
-    )
+        width=750,
+        height=500
+    ).add_selection(
+    group_selection
+).transform_filter(
+    group_selection)
 
 
 MedInc = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
@@ -265,7 +286,10 @@ MedInc = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     "MedIncbin",
     field="MedInc",
     bin=alt.Bin(maxbins=20)
-)
+).add_selection(
+    group_selection
+).transform_filter(
+    group_selection)
 
 HouseAge = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     x='HouseAgebin:N',
@@ -279,7 +303,10 @@ HouseAge = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     "HouseAgebin",
     field="HouseAge",
     bin=alt.Bin(maxbins=20)
-)
+).add_selection(
+    group_selection
+).transform_filter(
+    group_selection)
 
 AveRooms = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     x='AveRoomsbin:N',
@@ -293,7 +320,10 @@ AveRooms = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     "AveRoomsbin",
     field="AveRooms",
     bin=alt.Bin(maxbins=20)
-)
+).add_selection(
+    group_selection
+).transform_filter(
+    group_selection)
 
 AveBedrms = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     x='AveBedrmsbin:N',
@@ -307,7 +337,10 @@ AveBedrms = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     "AveBedrmsbin",
     field="AveBedrms",
     bin=alt.Bin(maxbins=20)
-)
+).add_selection(
+    group_selection
+).transform_filter(
+    group_selection)
 
 Population = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     x='Populationbin:N',
@@ -321,7 +354,10 @@ Population = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
     "Populationbin",
     field="Population",
     bin=alt.Bin(maxbins=20)
-)
+).add_selection(
+    group_selection
+).transform_filter(
+    group_selection)
 
 st.altair_chart(points_UMAP & ((MedInc | HouseAge | AveRooms) & (AveBedrms | Population) ))
 
@@ -331,5 +367,17 @@ def geospatial():
 if 'geospatial' not in st.session_state:
         geospatial()
 
+st.subheader('Location, Location, Location......?')
+
+st.write('''So, as the famous real-estate mantra goes when assessing property value, it's all about the location. So, why don't look at the geospatial data from the dataset? 
+Below, the geographical representation of the California Housing dataset is plotted. Both the minimum and the maximum SHAP values groups are plotted on the map. 
+As can be seen, using this information alone, it is very difficult to see a clear distinguish, if possible at all.''' )
+
 geo_fig = px.scatter_geo(st.session_state.geospatial, lat='latitude', lon='longitude', color='TARGET_BINNED', locationmode='USA-states', center=dict(lat=37.8600, lon=-122.2200), scope='usa')
 st.plotly_chart(geo_fig)
+
+
+st.write('''As you came this far, hopefully you have enjoyed the app :) ''')
+st.write('Source code: https://github.com/sgoede/streamlit-california-app')
+st.write('connect with me @ https://nl.linkedin.com/in/stephandegoede')
+st.write('Deployed on AWS')
