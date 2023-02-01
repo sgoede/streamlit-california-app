@@ -1,0 +1,4 @@
+name: california_dev
+channels:
+  - defaults
+prefix: /home/stephan/miniconda3/envs/california_dev
