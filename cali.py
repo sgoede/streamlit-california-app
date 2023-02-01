@@ -359,7 +359,7 @@ Population = alt.Chart(st.session_state.umap_dataframe).mark_bar().encode(
 ).transform_filter(
     group_selection)
 
-st.altair_chart(points_UMAP & ((MedInc | HouseAge | AveRooms) & (AveBedrms | Population) ))
+st.altair_chart(points_UMAP & MedInc & HouseAge & AveRooms & AveBedrms & Population)
 
 def geospatial():
     st.session_state.geospatial =  st.session_state.umap_dataframe.query("TARGET_BINNED in ['highest 25%','lowest 25%']")
