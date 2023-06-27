@@ -1,8 +1,8 @@
-scikit-learn==1.2.2
+﻿scikit-learn==1.2.2
 shap==0.41.0
 streamlit-shap==1.0.2
 numba==0.56.4
-numpy==1.23.5
+numpy==1.23.1
 xgboost==1.7.3
 streamlit==1.17.0
 chardet==5.1.0
