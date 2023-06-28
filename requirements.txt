@@ -48,7 +48,7 @@ mkl-service==2.4.0
 multipledispatch==0.6.0
 networkx==3.1
 numba==0.57.1
-numpy==1.23.5
+numpy==1.22.3
 packaging==22.0
 pandas==1.5.3
 panel==1.1.1
